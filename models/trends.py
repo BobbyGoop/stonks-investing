@@ -116,7 +116,7 @@ class TradingHelper:
 				dates.append(date_range[cache.index(currentMin)])
 		return pivots, dates
 
-	def count_legit(self):
+	def count_levels(self):
 		min_pivots, min_dates = self.get_min_pp()
 		max_pivots, max_dates = self.get_max_pp()
 		delta = dt.timedelta(days=self.stable_area)
@@ -147,6 +147,7 @@ class TradingHelper:
 		current_date = str(date.today().day) + '/' + str(date.today().month) + '/' + str(date.today().year)
 
 		plt.figure(figsize=(12.6, 4.6))
+		plt.plot(self.stock_data['Open'], label=stock + " Open price", alpha=1, c="green")
 		plt.plot(self.stock_data['Close'], label=stock + " Close price", alpha=1, c="orange")
 		plt.title(stock + ' history')
 		plt.xlabel('Date')

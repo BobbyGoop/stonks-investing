@@ -2,7 +2,6 @@ import time
 from datetime import date
 
 import investpy
-import numpy as np
 
 
 def array_to_string(a):
@@ -84,27 +83,4 @@ if __name__ == "__main__":
 
 	print('==================================================')
 
-	# df = investpy.get_currency_cross_historical_data(currency_cross='USD/RUB', from_date=from_date, to_date=current_date)
-	#
-	# print('Prices Last Five days of USD/RUB =', np.array(df['Close'][-5:][0]), ';', np.array(df['Close'][-5:][1]), ';', np.array(df['Close'][-5:][2]), ';', np.array(df['Close'][-5:][3]), ';', np.array(df['Close'][-5:][4]))
-	# p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])
-	# if df['Close'][-5:][1] >= df['Close'][-5:][0]:
-	# 	pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'
-	# else:
-	# 	pp_1 = '-' + str(round(p_1 * 100, 2)) + '%'
-	# p_2 = abs(1 - df['Close'][-5:][2] / df['Close'][-5:][1])
-	# if df['Close'][-5:][2] >= df['Close'][-5:][1]:
-	# 	pp_2 = '+' + str(round(p_2 * 100, 2)) + '%'
-	# else:
-	# 	pp_2 = '-' + str(round(p_2 * 100, 2)) + '%'
-	# p_3 = abs(1 - df['Close'][-5:][3] / df['Close'][-5:][2])
-	# if df['Close'][-5:][3] >= df['Close'][-5:][2]:
-	# 	pp_3 = '+' + str(round(p_3 * 100, 2)) + '%'
-	# else:
-	# 	pp_3 = '-' + str(round(p_3 * 100, 2)) + '%'
-	# p_4 = abs(1 - df['Close'][-5:][4] / df['Close'][-5:][3])
-	# if df['Close'][-5:][4] >= df['Close'][-5:][3]:
-	# 	pp_4 = '+' + str(round(p_4 * 100, 2)) + '%'
-	# else:
-	# 	pp_4 = '-' + str(round(p_4 * 100, 2)) + '%'
-	# print('Percentage +/- of USD/RUB =', pp_1, ';', pp_2, ';', pp_3, ';', pp_4, )
+# df = investpy.get_currency_cross_historical_data(currency_cross='USD/RUB', from_date=from_date, to_date=current_date)  #  # print('Prices Last Five days of USD/RUB =', np.array(df['Close'][-5:][0]), ';', np.array(df['Close'][-5:][1]), ';', np.array(df['Close'][-5:][2]), ';', np.array(df['Close'][-5:][3]), ';', np.array(df['Close'][-5:][4]))  # p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])  # if df['Close'][-5:][1] >= df['Close'][-5:][0]:  # 	pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'  # else:  # 	pp_1 = '-' + str(round(p_1 * 100, 2)) + '%'  # p_2 = abs(1 - df['Close'][-5:][2] / df['Close'][-5:][1])  # if df['Close'][-5:][2] >= df['Close'][-5:][1]:  # 	pp_2 = '+' + str(round(p_2 * 100, 2)) + '%'  # else:  # 	pp_2 = '-' + str(round(p_2 * 100, 2)) + '%'  # p_3 = abs(1 - df['Close'][-5:][3] / df['Close'][-5:][2])  # if df['Close'][-5:][3] >= df['Close'][-5:][2]:  # 	pp_3 = '+' + str(round(p_3 * 100, 2)) + '%'  # else:  # 	pp_3 = '-' + str(round(p_3 * 100, 2)) + '%'  # p_4 = abs(1 - df['Close'][-5:][4] / df['Close'][-5:][3])  # if df['Close'][-5:][4] >= df['Close'][-5:][3]:  # 	pp_4 = '+' + str(round(p_4 * 100, 2)) + '%'  # else:  # 	pp_4 = '-' + str(round(p_4 * 100, 2)) + '%'  # print('Percentage +/- of USD/RUB =', pp_1, ';', pp_2, ';', pp_3, ';', pp_4, )

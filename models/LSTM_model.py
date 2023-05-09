@@ -1,94 +1,145 @@
-import yfinance as yf
-import math
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
-from keras.layers import Dense, LSTM, Dropout
+import datetime
+from math import sqrt
+
+import matplotlib.dates as mpl_dates
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yfinance as yf
+from dateutil.relativedelta import relativedelta
+from keras import layers
+from keras.models import Sequential
+from keras.optimizers import Adam
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+MODEL_INPUT_DAYS = 56
+PREDICTION_INPUT_DAYS = 28
+
+
+def str_to_datetime(s):
+	split = s.split('-')
+	year, month, day = int(split[0]), int(split[1]), int(split[2])
+	return datetime.datetime(year=year, month=month, day=day)
+
+
+def window_data(data, n=MODEL_INPUT_DAYS):
+	windowed_data = pd.DataFrame()
+	for i in range(n, 0, -1):
+		windowed_data[f'Target-{i}'] = data['Close'].shift(i)
+	windowed_data['Target'] = data['Close']
+	return windowed_data.dropna()
+
+
+def windowed_df_to_date_xy(windowed_dataframe):
+	df_as_np = windowed_dataframe.to_numpy()
+	dates_list = np.array(windowed_dataframe.index)
+
+	middle_matrix = df_as_np[:, 0:-1]
+	X_values = middle_matrix.reshape((len(dates_list), middle_matrix.shape[1], 1))
+
+	# print(X[:5, :])
+	Y_values = df_as_np[:, -1]
+
+	return dates_list, X_values.astype(np.float32), Y_values.astype(np.float32)
+
 
 if __name__ == "__main__":
 
-    AAPL = yf.download('AAPL',
-                       start='2015-01-01',
-                       end='2020-06-06',
-                       progress=False)
+	end_date = datetime.date(day=1, month=1, year=2022)
+	start_date = end_date + relativedelta(years=-2)
+	AAPL = yf.download('YNDX', start=start_date, end=end_date, progress=False)
+	# print(AAPL.columns)
+	df = AAPL.loc[:, ['Close']]
+	# print(df)
+	# Start day second time around: '2021-03-25'
+	windowed_df = window_data(df)
+	# print(windowed_df)
+	dates, X, y = windowed_df_to_date_xy(windowed_df)
 
-    # Создаем новый датафрейм только с колонкой "Close"
-    data = AAPL.filter(['Close'])
-    # преобразовываем в нумпаевский массив
-    dataset = data.values
-    # Вытаскиваем количество строк в дате для обучения модели (LSTM)
-    training_data_len = math.ceil(len(data.values) * .6)
+	# print(dates[:10])
+	# print(X[:10, :])
+	# print(y)
+	q_80 = int(len(dates) * .6)
+	q_90 = int(len(dates) * .8)
 
-    train_dataset = data.values[0:training_data_len]
-    test_dataset = data.values[training_data_len:]
+	dates_train, X_train, y_train = dates[:q_80], X[:q_80], y[:q_80]
 
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    train_dataset = scaler.fit_transform(train_dataset)
-    test_dataset = scaler.fit_transform(test_dataset)
+	dates_val, X_val, y_val = dates[q_80:q_90], X[q_80:q_90], y[q_80:q_90]
+	dates_test, X_test, y_test = dates[q_90:], X[q_90:], y[q_90:]
 
-    train_dataset = np.array(train_dataset)
-    test_dataset = np.array(test_dataset)
+	model = Sequential([layers.Input((MODEL_INPUT_DAYS, 1)), layers.LSTM(64), layers.Dense(32, activation='relu'), layers.Dense(32, activation='relu'), layers.Dense(1)])
 
-    x_train = []
-    y_train = []
-    x_test = []
-    y_test = []
-    steps = 3
-    for i in range(steps, len(train_dataset)):
-        x_train.append(train_dataset[i - steps:i])
-        y_train.append(train_dataset[i])
+	model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'])
 
-    for i in range(steps, len(test_dataset)):
-        x_test.append(test_dataset[i - steps:i])
-        y_test.append(test_dataset[i])
+	model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=100)
 
-    x_train, y_train = np.array(x_train), np.array(y_train)
-    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], x_train.shape[2]))
+	train_predictions = model.predict(X_train).flatten()
+	val_predictions = model.predict(X_val).flatten()
+	test_predictions = model.predict(X_test).flatten()
 
-    x_test, y_test = np.array(x_test), np.array(y_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], x_test.shape[2]))
+	# Assume we want to predict next 14 days
+	# while model is trained across 28 days
+	recursive_predictions = []
+	recursive_dates = dates_test[-PREDICTION_INPUT_DAYS:]
+	last_window = X_test[-PREDICTION_INPUT_DAYS]
 
-    shapes = (x_train.shape[1], x_train.shape[2])
+	for target_date in recursive_dates:
+		# print(last_window)
+		next_prediction = model.predict(np.array([last_window])).flatten()
+		recursive_predictions.append(next_prediction)
+		new_window = list(last_window[1:])
+		new_window.append(next_prediction)
+		new_window = np.array(new_window)
+		last_window = new_window
 
-    # Строим нейронку
-    model = Sequential()
-    model.add(LSTM(4, return_sequences=True, input_shape=(x_train.shape[1], x_train.shape[2])))
-    model.add(Dense(1))
+	model.summary()
+	# Mean Squared Error
+	MSE = mean_squared_error(y_test[-PREDICTION_INPUT_DAYS:], recursive_predictions)
+	RMSE = sqrt(MSE)
+	MAE = mean_absolute_error(y_test[-PREDICTION_INPUT_DAYS:], recursive_predictions)
+	print("Mean Squared Error: ", MSE)
+	print("Root Mean Squared Error: ", RMSE)
+	print("Mean Absolute Error: ", MAE)
 
-    # Компилируем и Тренируем модель
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(x_train, y_train, batch_size=16, epochs=4, verbose=1, validation_data=(x_test, y_test))
+	# Plotting data
+	date_format = mpl_dates.DateFormatter('%d-%m-%Y')
 
-    model.summary()
+	fig, ax = plt.subplots()
+	fig.suptitle(f"Обучение модели LSTM ({len(dates_train)} значений)")
+	ax.plot(dates_train, train_predictions)
+	ax.plot(dates_train, y_train, linestyle="dashed")
+	ax.legend(['Отклик модели', 'Действительные значения'])
+	ax.set_xlabel("Дата")
+	ax.set_ylabel("Цена")
+	ax.xaxis.set_major_formatter(date_format)
+	fig.autofmt_xdate()
+	plt.tight_layout()
+	plt.grid()
 
-    train_predict = model.predict(x_train)
-    test_predict = model.predict(x_test)
+	fig, ax = plt.subplots()
+	fig.suptitle(f"Валидация модели LSTM ({len(dates_val)} значений)")
+	ax.plot(dates_val, val_predictions)
+	ax.plot(dates_val, y_val, linestyle="dashed")
+	ax.legend(['Отклик модели', 'Действительные значения'])
+	ax.set_xlabel("Дата")
+	ax.set_ylabel("Цена")
+	ax.xaxis.set_major_formatter(date_format)
+	fig.autofmt_xdate()
+	plt.tight_layout()
+	plt.grid()
 
-    # train_predict = np.c_[train_predict, np.zeros(train_predict)]
-    # test_predict = np.c_[test_predict, np.zeros(test_predict)]
+	fig, ax = plt.subplots()
+	fig.suptitle(f"Предсказание значений")
+	ax.plot(dates_test[-PREDICTION_INPUT_DAYS:], test_predictions[-PREDICTION_INPUT_DAYS:], linestyle="dashdot")
+	ax.plot(dates_test[-PREDICTION_INPUT_DAYS:], y_test[-PREDICTION_INPUT_DAYS:], linestyle="dashed")
+	ax.plot(recursive_dates, recursive_predictions)
+	ax.set_xticks(recursive_dates)
+	ax.legend(['Отклик модели (по известным значениям)', 'Реальные значения', 'Действительные значения'])
+	ax.set_xlabel("Дата")
+	ax.set_ylabel("Цена")
+	ax.xaxis.set_major_formatter(date_format)
+	fig.autofmt_xdate()
+	plt.tight_layout()
+	plt.grid()
 
-    train_predict = scaler.inverse_transform(train_predict)
-    test_predict = scaler.inverse_transform(test_predict)
-
-
-    # # Получаем модель предсказывающую значения
-    # predictions = model.predict(x_test)
-    # predictions = scaler.inverse_transform(predictions)
-    #
-    # # Получим mean squared error (RMSE) - метод наименьших квадратов
-    # rms_error= np.sqrt(np.mean(predictions - y_test) ** 2)
-
-    # Строим график
-    train = data[:training_data_len]
-    valid = data[training_data_len:]
-    valid['Predictions'] = test_predict
-    # Визуализируем
-    plt.figure(figsize=(16, 8))
-    plt.title('Model LSTM')
-    plt.xlabel('Date', fontsize=18)
-    plt.ylabel('Close Price', fontsize=18)
-    plt.plot(train['Close'])
-    plt.plot(valid[['Close', 'Predictions']])
-    plt.legend(['Train', 'Val', 'Pred'], loc='lower right')
-    plt.show()
+	plt.show()

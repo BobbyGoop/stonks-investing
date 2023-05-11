@@ -1,15 +1,15 @@
 import datetime
 import datetime as dt
 from datetime import date
+from dateutil.relativedelta import relativedelta
 
 import matplotlib
-import matplotlib.dates as mpl_dates
+import yfinance as yf
 import matplotlib.pyplot as plt
+import matplotlib.dates as mpl_dates
 import mplfinance as mpf
 import numpy as np
 import pandas as pd
-import yfinance as yf
-from dateutil.relativedelta import relativedelta
 
 
 class TradingHelper:
@@ -47,13 +47,14 @@ class TradingHelper:
 		data['EMA60'] = EMA60['Close Price']
 		if self.plotting:
 			fig, (ema, sma) = plt.subplots(2, 1)
-			fig.suptitle(stock + ' history (SMA and EMA)')
+			fig.suptitle("SMA и EMA сглаживание")
 			# Визуализируем
 			sma.plot(data['Stock'], label=stock, alpha=0.35)
 			sma.plot(SMA30['Close Price'], label='SMA30')
 			sma.plot(SMA90['Close Price'], label='SMA90')
 			# sma.set_xlabel('01/01/2019 - ' + current_date)
-			sma.set_ylabel('Close price')
+			sma.set_ylabel('Цена закрытия')
+			sma.set_xlabel('Дата')
 			sma.legend(loc='upper left')
 
 			# Визуализируем
@@ -62,7 +63,7 @@ class TradingHelper:
 			ema.plot(EMA60['Close Price'], label='EMA60')
 			# ema.set_xlabel('01/01/2019 - ' + current_date)
 			ema.axes.get_xaxis().set_visible(False)
-			ema.set_ylabel('Close price')
+			ema.set_ylabel('Цена закрытия')
 			ema.legend(loc='upper left')
 
 			# Formatting Date
@@ -71,7 +72,7 @@ class TradingHelper:
 			ema.xaxis.set_major_formatter(date_format)
 			fig.autofmt_xdate()
 
-			plt.subplots_adjust(left=0.05, bottom=0.1, right=0.95, top=0.9, wspace=0.05, hspace=0.0)
+			plt.subplots_adjust(left=0.04, bottom=0.1, right=0.96, top=0.9, wspace=0.05, hspace=0.0)
 		return [(SMA30, SMA90), (EMA20, EMA60)]
 
 	def get_max_pp(self):
@@ -186,50 +187,49 @@ class TradingHelper:
 		mpf.plot(df, type='candlestick', style='yahoo', show_nontrading=True, ax=ax)
 		# # candlestick_ohlc(ax, , width=0.6, colorup='green', colordown='red', alpha=0.8)
 		# # Setting labels & titles
-		ax.set_xlabel('Date')
-		ax.set_ylabel('Price')
+		ax.set_xlabel('Дата')
+		ax.set_ylabel('Цена')
 		ax.plot(df.index, trend_close(ticks), label="Тренд")
-		fig.suptitle('Daily Candlestick Chart of NIFTY50')
+		fig.suptitle(f'Изменение цены акции {stock}')
 
 		# Formatting Date
 		date_format = mpl_dates.DateFormatter('%d-%m-%Y')
 		ax.xaxis.set_major_formatter(date_format)
 		fig.autofmt_xdate()
 
-		fig.tight_layout()
+		plt.subplots_adjust(left=0.04, bottom=0.1, right=0.96, top=0.9)
 		plt.legend(loc="best")
-		plt.tight_layout()
 		plt.grid()
 
-	# plt.plot(self.stock_data['Open'], label=stock + " Open price", alpha=1, c="green")
-	# plt.plot(self.stock_data['Close'], label=stock + " Close price", alpha=1, c="orange")
-	# plt.title(stock + ' history')
-	# plt.xlabel('Date')
-	# plt.ylabel('Close price')
-	# plt.legend(loc='upper left')
-	# plt.show()
-	# print('Prices Last Five days of ' + stock + ' =', np.array(df['Close'][-5:][0]), ';', np.array(df['Close'][-5:][1]), ';', np.array(df['Close'][-5:][2]), ';', np.array(df['Close'][-5:][3]), ';', np.array(df['Close'][-5:][4]))
-	# p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])
-	# if df['Close'][-5:][1] >= df['Close'][-5:][0]:
-	# 	pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'
-	# else:
-	# 	pp_1 = '-' + str(round(p_1 * 100, 2)) + '%'
-	# p_2 = abs(1 - df['Close'][-5:][2] / df['Close'][-5:][1])
-	# if df['Close'][-5:][2] >= df['Close'][-5:][1]:
-	# 	pp_2 = '+' + str(round(p_2 * 100, 2)) + '%'
-	# else:
-	# 	pp_2 = '-' + str(round(p_2 * 100, 2)) + '%'
-	# p_3 = abs(1 - df['Close'][-5:][3] / df['Close'][-5:][2])
-	# if df['Close'][-5:][3] >= df['Close'][-5:][2]:
-	# 	pp_3 = '+' + str(round(p_3 * 100, 2)) + '%'
-	# else:
-	# 	pp_3 = '-' + str(round(p_3 * 100, 2)) + '%'
-	# p_4 = abs(1 - df['Close'][-5:][4] / df['Close'][-5:][3])
-	# if df['Close'][-5:][4] >= df['Close'][-5:][3]:
-	# 	pp_4 = '+' + str(round(p_4 * 100, 2)) + '%'
-	# else:
-	# 	pp_4 = '-' + str(round(p_4 * 100, 2)) + '%'
-	# print('Percentage +/- of ' + stock + ' =', pp_1, ';', pp_2, ';', pp_3, ';', pp_4, )
+		# plt.plot(self.stock_data['Open'], label=stock + " Open price", alpha=1, c="green")
+		# plt.plot(self.stock_data['Close'], label=stock + " Close price", alpha=1, c="orange")
+		# plt.title(stock + ' history')
+		# plt.xlabel('Date')
+		# plt.ylabel('Close price')
+		# plt.legend(loc='upper left')
+		# plt.show()
+		# print('Prices Last Five days of ' + stock + ' =', np.array(df['Close'][-5:][0]), ';', np.array(df['Close'][-5:][1]), ';', np.array(df['Close'][-5:][2]), ';', np.array(df['Close'][-5:][3]), ';', np.array(df['Close'][-5:][4]))
+		# p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])
+		# if df['Close'][-5:][1] >= df['Close'][-5:][0]:
+		# 	pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'
+		# else:
+		# 	pp_1 = '-' + str(round(p_1 * 100, 2)) + '%'
+		# p_2 = abs(1 - df['Close'][-5:][2] / df['Close'][-5:][1])
+		# if df['Close'][-5:][2] >= df['Close'][-5:][1]:
+		# 	pp_2 = '+' + str(round(p_2 * 100, 2)) + '%'
+		# else:
+		# 	pp_2 = '-' + str(round(p_2 * 100, 2)) + '%'
+		# p_3 = abs(1 - df['Close'][-5:][3] / df['Close'][-5:][2])
+		# if df['Close'][-5:][3] >= df['Close'][-5:][2]:
+		# 	pp_3 = '+' + str(round(p_3 * 100, 2)) + '%'
+		# else:
+		# 	pp_3 = '-' + str(round(p_3 * 100, 2)) + '%'
+		# p_4 = abs(1 - df['Close'][-5:][4] / df['Close'][-5:][3])
+		# if df['Close'][-5:][4] >= df['Close'][-5:][3]:
+		# 	pp_4 = '+' + str(round(p_4 * 100, 2)) + '%'
+		# else:
+		# 	pp_4 = '-' + str(round(p_4 * 100, 2)) + '%'
+		# print('Percentage +/- of ' + stock + ' =', pp_1, ';', pp_2, ';', pp_3, ';', pp_4, )
 
 	def show_plots(self):
 		plt.show()
@@ -243,7 +243,13 @@ if __name__ == "__main__":
 	matplotlib.get_backend()
 	trader = TradingHelper(stock, country, time_period_months=12, end_date=datetime.date(day=1, month=1, year=2022))
 
-	trader.count_levels()
+	# trader.count_levels()
 	trader.count_esma()
 	trader.stock_updates()
-	trader.show_plots()  # count_esma(stock, country)  # Stock_EMA(stock, country)  # Upper_levels(stock, country)  # Low_levels(stock, country)  # get_last_month(stock, country)  # count_levels(stock, country)
+	trader.show_plots()
+	# count_esma(stock, country)
+	# Stock_EMA(stock, country)
+	# Upper_levels(stock, country)
+	# Low_levels(stock, country)
+	# get_last_month(stock, country)
+	# count_levels(stock, country)

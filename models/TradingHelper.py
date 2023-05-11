@@ -1,27 +1,22 @@
-import datetime
 import datetime as dt
-from datetime import date
-from dateutil.relativedelta import relativedelta
 
-import matplotlib
-import yfinance as yf
-import matplotlib.pyplot as plt
 import matplotlib.dates as mpl_dates
+import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
 import pandas as pd
+import yfinance as yf
 
 
 class TradingHelper:
 	caching_size = 20
 	stable_area = 15
 
-	def __init__(self, stock, country, time_period_months=6, end_date=date.today(), plotting=True):
+	def __init__(self, stock, start_date, end_date, plotting=True):
 
 		self.stock = stock
-		self.country = country
 		self.plotting = plotting
-		self.start_date = end_date + relativedelta(months=-time_period_months)
+		self.start_date = start_date
 		self.end_date = end_date
 		self.stock_data = yf.download(stock, start=self.start_date, end=self.end_date, progress=False)
 
@@ -49,7 +44,7 @@ class TradingHelper:
 			fig, (ema, sma) = plt.subplots(2, 1)
 			fig.suptitle("SMA и EMA сглаживание")
 			# Визуализируем
-			sma.plot(data['Stock'], label=stock, alpha=0.35)
+			sma.plot(data['Stock'], label=self.stock, alpha=0.35)
 			sma.plot(SMA30['Close Price'], label='SMA30')
 			sma.plot(SMA90['Close Price'], label='SMA90')
 			# sma.set_xlabel('01/01/2019 - ' + current_date)
@@ -58,7 +53,7 @@ class TradingHelper:
 			sma.legend(loc='upper left')
 
 			# Визуализируем
-			ema.plot(data['Stock'], label=stock, alpha=0.35)
+			ema.plot(data['Stock'], label=self.stock, alpha=0.35)
 			ema.plot(EMA20['Close Price'], label='EMA30')
 			ema.plot(EMA60['Close Price'], label='EMA60')
 			# ema.set_xlabel('01/01/2019 - ' + current_date)
@@ -105,7 +100,6 @@ class TradingHelper:
 		pivots = []
 		dates = []
 		counter = 0
-		lastPivot = 0
 
 		cache = [99999] * self.caching_size
 		date_range = [0] * self.caching_size
@@ -136,7 +130,7 @@ class TradingHelper:
 
 			fig, ax = plt.subplots()
 			# plt.figure(figsize=(12.6, 4.6))
-			ax.set_title(stock + ' history')
+			ax.set_title(self.stock + ' history')
 			ax.set_xlabel("From " + self.start_date.strftime("%d.%m.%Y") + " to " + self.end_date.strftime("%d.%m.%Y"))
 			ax.set_ylabel('Close price')
 
@@ -160,22 +154,8 @@ class TradingHelper:
 		return [(max_pivots, max_pivots), (min_dates, max_dates)]
 
 	def stock_updates(self):
-		current_date = str(date.today().day) + '/' + str(date.today().month) + '/' + str(date.today().year)
-		# print(self.stock_data)
-		print(self.stock_data)
 		df = self.stock_data.loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
 		df.index = pd.to_datetime(df.index)
-		print(df)
-		# ohlc["Date"] = ohlc.index
-		# ohlc.set_index(pd.Series([i for i in range(len(ohlc.index))]), inplace=True, drop=True)
-		# ohlc = ohlc[['Date', 'Open', 'High', 'Low', 'Close']]
-		# print(ohlc)
-		# # ohlc.insert(0, "Date", self.stock_data.iloc[:, 0])
-		# # print(ohlc)
-		# # Converting date into datetime format
-		# ohlc['Date'] = pd.to_datetime(ohlc['Date'])
-		# ohlc['Date'] = ohlc['Date'].apply(mpl_dates.date2num)
-		# ohlc = ohlc.astype(float)
 
 		ticks = np.array(df.index.astype(np.int64))
 		price_close = np.array(df['Close'].to_list())
@@ -185,12 +165,10 @@ class TradingHelper:
 
 		fig, ax = plt.subplots()
 		mpf.plot(df, type='candlestick', style='yahoo', show_nontrading=True, ax=ax)
-		# # candlestick_ohlc(ax, , width=0.6, colorup='green', colordown='red', alpha=0.8)
-		# # Setting labels & titles
 		ax.set_xlabel('Дата')
 		ax.set_ylabel('Цена')
 		ax.plot(df.index, trend_close(ticks), label="Тренд")
-		fig.suptitle(f'Изменение цены акции {stock}')
+		fig.suptitle(f'Изменение цены акции {self.stock}')
 
 		# Formatting Date
 		date_format = mpl_dates.DateFormatter('%d-%m-%Y')
@@ -201,55 +179,10 @@ class TradingHelper:
 		plt.legend(loc="best")
 		plt.grid()
 
-		# plt.plot(self.stock_data['Open'], label=stock + " Open price", alpha=1, c="green")
-		# plt.plot(self.stock_data['Close'], label=stock + " Close price", alpha=1, c="orange")
-		# plt.title(stock + ' history')
-		# plt.xlabel('Date')
-		# plt.ylabel('Close price')
-		# plt.legend(loc='upper left')
-		# plt.show()
-		# print('Prices Last Five days of ' + stock + ' =', np.array(df['Close'][-5:][0]), ';', np.array(df['Close'][-5:][1]), ';', np.array(df['Close'][-5:][2]), ';', np.array(df['Close'][-5:][3]), ';', np.array(df['Close'][-5:][4]))
-		# p_1 = abs(1 - df['Close'][-5:][1] / df['Close'][-5:][0])
-		# if df['Close'][-5:][1] >= df['Close'][-5:][0]:
-		# 	pp_1 = '+' + str(round(p_1 * 100, 2)) + '%'
-		# else:
-		# 	pp_1 = '-' + str(round(p_1 * 100, 2)) + '%'
-		# p_2 = abs(1 - df['Close'][-5:][2] / df['Close'][-5:][1])
-		# if df['Close'][-5:][2] >= df['Close'][-5:][1]:
-		# 	pp_2 = '+' + str(round(p_2 * 100, 2)) + '%'
-		# else:
-		# 	pp_2 = '-' + str(round(p_2 * 100, 2)) + '%'
-		# p_3 = abs(1 - df['Close'][-5:][3] / df['Close'][-5:][2])
-		# if df['Close'][-5:][3] >= df['Close'][-5:][2]:
-		# 	pp_3 = '+' + str(round(p_3 * 100, 2)) + '%'
-		# else:
-		# 	pp_3 = '-' + str(round(p_3 * 100, 2)) + '%'
-		# p_4 = abs(1 - df['Close'][-5:][4] / df['Close'][-5:][3])
-		# if df['Close'][-5:][4] >= df['Close'][-5:][3]:
-		# 	pp_4 = '+' + str(round(p_4 * 100, 2)) + '%'
-		# else:
-		# 	pp_4 = '-' + str(round(p_4 * 100, 2)) + '%'
-		# print('Percentage +/- of ' + stock + ' =', pp_1, ';', pp_2, ';', pp_3, ';', pp_4, )
-
 	def show_plots(self):
 		plt.show()
 		return self.stock_data
 
-
-if __name__ == "__main__":
-	# plt.style.use('dark_background')
-	stock = 'YNDX'
-	country = 'Russia'
-	matplotlib.get_backend()
-	trader = TradingHelper(stock, country, time_period_months=12, end_date=datetime.date(day=1, month=1, year=2022))
-
-	# trader.count_levels()
-	trader.count_esma()
-	trader.stock_updates()
-	trader.show_plots()
-	# count_esma(stock, country)
-	# Stock_EMA(stock, country)
-	# Upper_levels(stock, country)
-	# Low_levels(stock, country)
-	# get_last_month(stock, country)
-	# count_levels(stock, country)
+	def export_data(self, file_name=""):
+		file_name = f"data/{self.stock}_Quotes.csv" if not file_name else ""
+		self.stock_data.to_csv(file_name, sep=";")

@@ -1,4 +1,3 @@
-import datetime
 from math import sqrt
 
 import matplotlib.dates as mpl_dates
@@ -6,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yfinance as yf
-from dateutil.relativedelta import relativedelta
 from keras import layers
 from keras.models import Sequential
 from keras.optimizers import Adam
@@ -28,8 +26,6 @@ class StockPredictionModel:
 		])
 
 		self.plot = plot
-
-		# Plotting data
 		self.date_format = mpl_dates.DateFormatter('%d-%m-%Y')
 
 	def _window_data(self, n=MODEL_INPUT_DAYS):
@@ -41,10 +37,9 @@ class StockPredictionModel:
 
 		dates_list = np.array(windowed_df.index)
 		windowed_df = windowed_df.to_numpy()
+
 		middle_matrix = windowed_df[:, 0:-1]
 		X_values = middle_matrix.reshape((len(dates_list), middle_matrix.shape[1], 1))
-
-		# print(X[:5, :])
 		Y_values = windowed_df[:, -1]
 
 		return dates_list, X_values.astype(np.float32), Y_values.astype(np.float32)
@@ -52,14 +47,12 @@ class StockPredictionModel:
 	def train_model(self, epochs=100, batch_size=32, train_percentage=0.6, val_percentage=0.2):
 		self.model.compile(loss='mse', optimizer=Adam(learning_rate=0.001), metrics=['mean_absolute_error'])
 
-		# print(windowed_df)
 		dates, X, y = self._window_data()
 
 		index_train = int(len(dates) * train_percentage)
 		index_validation = int(len(dates) * (train_percentage + val_percentage))
 
 		dates_train, X_train, y_train = dates[:index_train + 1], X[:index_train + 1], y[:index_train + 1]
-
 		dates_val, X_val, y_val = dates[index_train:index_validation], X[index_train:index_validation], y[index_train:index_validation]
 		dates_test, X_test, y_test = dates[index_validation:], X[index_validation:], y[index_validation:]
 
@@ -94,7 +87,7 @@ class StockPredictionModel:
 		recursive_dates = dates[-self.PREDICTION_INPUT_DAYS:]
 		last_window = X[-self.PREDICTION_INPUT_DAYS]
 
-		for target_date in recursive_dates:
+		for _ in recursive_dates:
 			# print(last_window)
 			next_prediction = self.model.predict(np.array([last_window])).flatten()
 			recursive_predictions.append(next_prediction)
@@ -129,19 +122,3 @@ class StockPredictionModel:
 		if self.plot:
 			plt.show()
 		return self.stock_df
-
-
-
-if __name__ == "__main__":
-
-	end_date = datetime.date(day=1, month=1, year=2022)
-	start_date = end_date + relativedelta(years=-2)
-	stock = "AAPL"
-
-	ltsm_model = StockPredictionModel(stock,  start_date, end_date)
-
-	ltsm_model.train_model()
-	ltsm_model.predict_values_recursively()
-
-	ltsm_model.show_plots()
-
